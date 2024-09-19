@@ -1,3 +1,5 @@
+# José Henrique Hess - - gitignore da matéria da pós graduação de engenharia ambiental na UFSC
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
