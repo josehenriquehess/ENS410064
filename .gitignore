@@ -1,5 +1,7 @@
 # José Henrique Hess - - gitignore da matéria da pós graduação de engenharia ambiental na UFSC
 
+.ipynb
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -9,6 +11,8 @@ __pycache__/
 *.so
 
 dados
+tabelas
+figuras
 
 # Distribution / packaging
 .Python
