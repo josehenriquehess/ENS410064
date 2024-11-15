@@ -1,0 +1,3 @@
+Trabalho 1 de python para aplicações ambientais
+
+https://github.com/josehenriquehess/ENS410064/blob/main/2024/notebooks/Trabalho1_spyder.py

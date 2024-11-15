@@ -12,13 +12,13 @@ Created on Fri Oct 25 16:54:03 2024
 
 #%% Célula de importações
 
-import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import pymannkendall as mk
-from scipy.stats import theilslopes as ts
+from scipy import stats
+from scipy.stats import mannwhitneyu
 
 #%% Manipulação dos dados
 
@@ -222,7 +222,7 @@ def AnaliseSerieTemporalBoxplot(df: pd.DataFrame(),estacao: str,poluente: str, r
             
             return falha
     
-        # Criando uma lista de valores para cada mês
+        # Criando uma lista de valores para cada a resolução escolhida
         valores_tempo = [df[data_nome == res].Valor.dropna() 
                          for res in data_nome.unique()]
         
@@ -253,7 +253,7 @@ def AnaliseSerieTemporalBoxplot(df: pd.DataFrame(),estacao: str,poluente: str, r
 boxplot = AnaliseSerieTemporalBoxplot(df_Congonhas,
                                         lista_estacoes[2],
                                         poluentes[2],
-                                        lista_resolucoes[4])
+                                        lista_resolucoes[2])
 
 #%% Estatísticas univariadas
 
@@ -437,6 +437,12 @@ def Tendencia(df: pd.DataFrame(),estacao: str,poluente: str, resolucao: str):
         return 0
     
     else: 
+    
+        df.dropna(subset=['Valor'], inplace=True)
+        
+        df['Ordinal'] = df.index.map(pd.Timestamp.toordinal)
+        
+        df = df.select_dtypes(include='number')
         
         if resolucao == 'Hora':
             df = df
@@ -454,14 +460,18 @@ def Tendencia(df: pd.DataFrame(),estacao: str,poluente: str, resolucao: str):
             return 0
 
         # Aplicando o método Thiel-Sen
-        slope, intercept, lower, upper = ts(df['Valor'])
+        slope, intercept, lower_slope, upper_slope = stats.theilslopes(df['Valor'], df['Ordinal'], 0.95)
+
+        print(est)
+        print(resolucao)
+        print(slope)
 
         dict_resultados = {
             'Indice': poluente + '_' + estacao,
-            'Inclinação': slope,
+            'Inclinacao': slope,
             'Intercept': intercept,
-            'Menor': lower,
-            'Maior': upper
+            'Menor': lower_slope,
+            'Maior': upper_slope
             }
         
         return dict_resultados
@@ -470,7 +480,7 @@ for tempo in lista_resolucoes:
 
     df_ten = pd.DataFrame(columns=[
         'Indice',
-        'Inclinação',
+        'Inclinacao',
         'Intercept',
         'Menor',
         'Maior'])
@@ -480,8 +490,6 @@ for tempo in lista_resolucoes:
             ten = Tendencia(df_Congonhas, est, pol, tempo)
             if ten != 0:
                 df_ten = pd.concat([df_ten, pd.DataFrame([ten])])
-    
-    print(1111111111111111111111)
     
     df_ten.index = df_ten.Indice
     df_ten = df_ten.drop(columns = 'Indice')
@@ -501,7 +509,68 @@ for pol in poluentes:
 
 
 
-#%%
+#%% Sazonalidade
+        
+def Sazonalidade(df: pd.DataFrame(),estacao: str,poluente: str):
+    '''
+    
+    Esta função estima a sazonalidade de um determinado poluente em uma estação
+
+    Parameters
+    ----------
+    df : pd.DataFrame()
+        Dataframe com os valores de concentração dos poluentes em determinada estação 
+    estacao : str
+        Nome da estação 
+    poluente : str
+        Nome do poluente
+        
+    Returns
+    -------
+    None.
+
+    '''
+    
+    # Cria um dataframe apenas com a estação e poluente selecionados
+    df = df[(df['Estacao'] == estacao) & (df['Poluente'] == poluente)]
+    
+    if len(df) == 0: # Verifica se existe o poluente naquela estação
+        
+        print('Não há o poluente ' + poluente + ' para a estação ' + estacao) 
+    
+    else: 
+
+        df_ver = df[df.index.month.isin([1, 2, 3])]['Valor'].dropna() 
+        df_inv = df[df.index.month.isin([7, 8, 9])]['Valor'].dropna() 
+        
+        stat, p_value = mannwhitneyu(df_ver, df_inv, alternative='less')
+
+        dict_resultados = {
+            'Indice': poluente + '_' + estacao,
+            'Stat': stat,
+            'p_valor': p_value
+            }
+
+        return dict_resultados
+        
+    
+    
+df_saz = pd.DataFrame(columns=[
+    'Indice',
+    'Stat',
+    'p_valor']
+    )
+    
+for pol in poluentes:
+    for est in lista_estacoes:
+        saz = Sazonalidade(df_Congonhas, est, pol)
+        if saz != None:
+            df_saz = pd.concat([df_saz, pd.DataFrame([saz])])
+            
+df_saz.index = df_saz.Indice
+df_saz = df_saz.drop(columns = 'Indice')
+            
+df_saz.to_csv(r'C:\PosGraduacao\ENS410064\2024\tabelas\Trabalho1\Sazonalidade.csv')
 
 
 
